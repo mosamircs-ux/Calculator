@@ -22,6 +22,9 @@ evalex = "3.7.0"
 room = "2.8.5"
 #Fossify
 commons = "7.1.3"
+#AdMob & UMP
+playServicesAds = "23.6.0"
+ump = "3.1.0"
 #Gradle
 gradlePlugins-agp = "9.5.1"
 #build
@@ -61,6 +64,9 @@ auto-fit-text-view = { module = "me.grantland:autofittextview", version.ref = "a
 fossify-commons = { module = "org.fossify:commons", version.ref = "commons" }
 #EvalEx
 evalex = { module = "com.ezylang:EvalEx", version.ref = "evalex" }
+#AdMob & UMP
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+user-messaging-platform = { module = "com.google.android.ump:user-messaging-platform", version.ref = "ump" }
 [bundles]
 compose = [
     "compose-activity",

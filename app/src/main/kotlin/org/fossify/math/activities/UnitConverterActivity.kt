@@ -4,20 +4,19 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import androidx.core.content.res.ResourcesCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import com.google.android.gms.ads.AdView
 import org.fossify.commons.extensions.beVisibleIf
-import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.performHapticFeedback
 import org.fossify.commons.extensions.viewBinding
-import org.fossify.commons.helpers.LOWER_ALPHA_INT
-import org.fossify.commons.helpers.MEDIUM_ALPHA_INT
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.math.R
 import org.fossify.math.databinding.ActivityUnitConverterBinding
 import org.fossify.math.extensions.config
-import org.fossify.math.extensions.updateViewColors
+import org.fossify.math.helpers.AdManager
 import org.fossify.math.helpers.CONVERTER_STATE
+import org.fossify.math.helpers.CalcovaThemeManager
 import org.fossify.math.helpers.converters.Converter
 import org.fossify.math.helpers.converters.TemperatureConverter
 import org.fossify.math.helpers.getDecimalSeparator
@@ -31,14 +30,10 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
     private val binding by viewBinding(ActivityUnitConverterBinding::inflate)
     private var vibrateOnButtonPress = true
     private lateinit var converter: Converter
-
-    private val pillDrawable by lazy {
-        ResourcesCompat.getDrawable(
-            resources, org.fossify.commons.R.drawable.pill_background, theme
-        )?.mutate()
-    }
+    private var bannerAdView: AdView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CalcovaThemeManager.syncFossifyPrefsForTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
@@ -47,8 +42,10 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
             setupOptionsMenu()
         }
 
-        setupEdgeToEdge(padBottomSystem = listOf(binding.nestedScrollview))
-        setupMaterialScrollListener(binding.nestedScrollview, binding.unitConverterAppbar)
+        setupEdgeToEdge(
+            padTopSystem = listOf(binding.unitConverterAppbar),
+            padBottomSystem = listOf(binding.adBannerContainer)
+        )
 
         val converter = Converter.ALL.getOrNull(intent.getIntExtra(EXTRA_CONVERTER_ID, 0))
 
@@ -93,6 +90,8 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
                 )
             }
         }
+
+        bannerAdView = AdManager.loadAdaptiveBanner(this, binding.adBannerContainer)
     }
 
     private fun setupOptionsMenu() {
@@ -106,52 +105,62 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
     }
 
     override fun onResume() {
+        CalcovaThemeManager.syncFossifyPrefsForTheme(this)
         super.onResume()
 
         setupTopAppBar(binding.unitConverterAppbar, NavigationIcon.Arrow)
+        CalcovaThemeManager.applyWindowStyling(this, binding.root)
+        binding.unitConverterAppbar.setBackgroundColor(CalcovaThemeManager.bgColor(this))
+        CalcovaThemeManager.styleToolbar(this, binding.unitConverterToolbar)
+
         binding.viewUnitConverter.viewConverter.root.updateColors()
-        binding.viewUnitConverter.converterHolder.let {
-            updateViewColors(it, getProperTextColor())
-        }
 
         if (config.preventPhoneFromSleeping) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
         setupDecimalButton()
-
         vibrateOnButtonPress = config.vibrateOnButtonPress
 
+        val digitBg = CalcovaThemeManager.digitKeyDrawableRes(this)
+        val clearBg = CalcovaThemeManager.clearKeyDrawableRes(this)
+        val fnBg = CalcovaThemeManager.fnKeyDrawableRes(this)
+        val digitText = CalcovaThemeManager.textPrimaryColor(this)
+        val clearText = CalcovaThemeManager.clearTextColor(this)
+        val fnText = CalcovaThemeManager.fnTextColor(this)
+
         binding.viewUnitConverter.apply {
-            arrayOf(btnClear, btnDecimal).forEach {
-                it.background = ResourcesCompat.getDrawable(
-                    resources,
-                    org.fossify.commons.R.drawable.pill_background,
-                    theme
-                )
-                it.background?.alpha = MEDIUM_ALPHA_INT
-            }
+            btnClear.background = ContextCompat.getDrawable(this@UnitConverterActivity, clearBg)
+            btnClear.setTextColor(clearText)
+
+            btnDecimal.background = ContextCompat.getDrawable(this@UnitConverterActivity, digitBg)
+            btnDecimal.setTextColor(digitText)
 
             arrayOf(btn0, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9).forEach {
-                it.background = ResourcesCompat.getDrawable(
-                    resources,
-                    org.fossify.commons.R.drawable.pill_background,
-                    theme
-                )
-                it.background?.alpha = LOWER_ALPHA_INT
+                it.background = ContextCompat.getDrawable(this@UnitConverterActivity, digitBg)
+                it.setTextColor(digitText)
             }
 
             if (plusMinusLayout.isVisible) {
-                updatePlusMinusButton()
+                btnPlusMinus.background = ContextCompat.getDrawable(this@UnitConverterActivity, fnBg)
+                btnPlusMinus.setTextColor(fnText)
             }
         }
+        bannerAdView?.resume()
     }
 
     override fun onPause() {
+        bannerAdView?.pause()
         super.onPause()
         if (config.preventPhoneFromSleeping) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
+    }
+
+    override fun onDestroy() {
+        bannerAdView?.destroy()
+        bannerAdView = null
+        super.onDestroy()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -173,7 +182,11 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
             }
 
         binding.viewUnitConverter.plusMinusLayout.beVisibleIf(shouldShowNegativeButton)
-        if (shouldShowNegativeButton) updatePlusMinusButton()
+        if (shouldShowNegativeButton) {
+            binding.viewUnitConverter.btnPlusMinus.background =
+                ContextCompat.getDrawable(this, CalcovaThemeManager.fnKeyDrawableRes(this))
+            binding.viewUnitConverter.btnPlusMinus.setTextColor(CalcovaThemeManager.fnTextColor(this))
+        }
     }
 
     private fun checkHaptic(view: View) {
@@ -191,12 +204,5 @@ class UnitConverterActivity : SimpleActivity(), ConverterView.OnUnitChangedListe
 
     private fun setupDecimalButton() {
         binding.viewUnitConverter.btnDecimal.text = getDecimalSeparator()
-    }
-
-    private fun updatePlusMinusButton() {
-        with(binding.viewUnitConverter) {
-            btnPlusMinus.background = pillDrawable
-            btnPlusMinus.background?.alpha = MEDIUM_ALPHA_INT
-        }
     }
 }

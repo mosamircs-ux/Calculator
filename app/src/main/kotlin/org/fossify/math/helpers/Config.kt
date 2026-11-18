@@ -38,6 +38,11 @@ class Config(context: Context) : BaseConfig(context) {
         ).apply()
     }
 
+    var calcovaThemeMode: Int
+        get() = prefs.getInt("calcova_theme_mode", CalcovaThemeManager.THEME_DARK)
+        set(value) = prefs.edit().putInt("calcova_theme_mode", value).apply()
+
+    val calcovaThemeModeFlow: Flow<Int> = ::calcovaThemeMode.asFlowNonNull()
     val preventPhoneFromSleepingFlow: Flow<Boolean> = ::preventPhoneFromSleeping.asFlowNonNull()
     val vibrateOnButtonPressFlow: Flow<Boolean> = ::vibrateOnButtonPress.asFlowNonNull()
 }

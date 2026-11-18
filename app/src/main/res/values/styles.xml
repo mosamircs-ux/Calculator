@@ -1,15 +1,25 @@
 <resources>
 
-    <style name="AppTheme" parent="AppTheme.Base" />
+    <style name="AppTheme" parent="AppTheme.Base">
+        <item name="android:windowBackground">@color/calcova_bg_dark</item>
+    </style>
+
+    <style name="CalcovaSplashTheme" parent="AppTheme.Base">
+        <item name="android:windowBackground">@color/calcova_bg_dark</item>
+        <item name="android:statusBarColor">@color/calcova_bg_dark</item>
+        <item name="android:navigationBarColor">@color/calcova_bg_dark</item>
+    </style>
 
     <style name="MyButton">
         <item name="android:background">@null</item>
         <item name="android:textSize">@dimen/button_text_size</item>
-        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:padding">0dp</item>
         <item name="android:gravity">center</item>
         <item name="android:layout_margin">@dimen/button_layout_margin</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
     </style>
 
 </resources>

@@ -5,31 +5,23 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import androidx.core.content.res.ResourcesCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.ads.AdView
 import me.grantland.widget.AutofitHelper
-import org.fossify.commons.extensions.appLaunched
 import org.fossify.commons.extensions.copyToClipboard
-import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.hideKeyboard
-import org.fossify.commons.extensions.launchMoreAppsFromUsIntent
 import org.fossify.commons.extensions.performHapticFeedback
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.value
 import org.fossify.commons.extensions.viewBinding
-import org.fossify.commons.helpers.APP_ICON_IDS
-import org.fossify.commons.helpers.LICENSE_AUTOFITTEXTVIEW
-import org.fossify.commons.helpers.LICENSE_EVALEX
-import org.fossify.commons.helpers.LOWER_ALPHA_INT
-import org.fossify.commons.helpers.MEDIUM_ALPHA_INT
-import org.fossify.commons.models.FAQItem
-import org.fossify.math.BuildConfig
 import org.fossify.math.R
 import org.fossify.math.databases.CalculatorDatabase
 import org.fossify.math.databinding.ActivityMainBinding
 import org.fossify.math.dialogs.HistoryDialog
 import org.fossify.math.extensions.config
-import org.fossify.math.extensions.updateViewColors
+import org.fossify.math.helpers.AdManager
 import org.fossify.math.helpers.CALCULATOR_STATE
+import org.fossify.math.helpers.CalcovaThemeManager
 import org.fossify.math.helpers.Calculator
 import org.fossify.math.helpers.CalculatorImpl
 import org.fossify.math.helpers.DIVIDE
@@ -43,24 +35,25 @@ import org.fossify.math.helpers.ROOT
 import org.fossify.math.helpers.getDecimalSeparator
 
 class MainActivity : SimpleActivity(), Calculator {
-    private var storedTextColor = 0
     private var vibrateOnButtonPress = true
     private var saveCalculatorState: String = ""
     private lateinit var calc: CalculatorImpl
+    private var bannerAdView: AdView? = null
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CalcovaThemeManager.syncFossifyPrefsForTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        appLaunched(BuildConfig.APPLICATION_ID)
         setupOptionsMenu()
-        refreshMenuItems()
-        setupEdgeToEdge(padBottomSystem = listOf(binding.mainNestedScrollview))
-        setupMaterialScrollListener(binding.mainNestedScrollview, binding.mainAppbar!!)
+        setupEdgeToEdge(
+            padTopSystem = listOf(binding.mainAppbar),
+            padBottomSystem = listOf(binding.adBannerContainer)
+        )
 
         if (savedInstanceState != null) {
-            saveCalculatorState = savedInstanceState.getCharSequence(CALCULATOR_STATE) as String
+            saveCalculatorState = savedInstanceState.getCharSequence(CALCULATOR_STATE) as? String ?: ""
         }
 
         calc = CalculatorImpl(
@@ -93,19 +86,22 @@ class MainActivity : SimpleActivity(), Calculator {
         binding.result?.setOnLongClickListener { copyToClipboard(true) }
         AutofitHelper.create(binding.result)
         AutofitHelper.create(binding.formula)
-        storeStateVariables()
-        binding.calculatorHolder?.let { updateViewColors(it, getProperTextColor()) }
         setupDecimalButton()
-        checkAppOnSDCard()
+        applyCalcovaDesign()
+
+        AdManager.requestConsentAndInit(this) {
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed && bannerAdView == null) {
+                    bannerAdView = AdManager.loadAdaptiveBanner(this, binding.adBannerContainer)
+                }
+            }
+        }
     }
 
     override fun onResume() {
+        CalcovaThemeManager.syncFossifyPrefsForTheme(this)
         super.onResume()
-        setupTopAppBar(binding.mainAppbar!!)
-        setupMaterialScrollListener(binding.mainNestedScrollview, binding.mainAppbar)
-        if (storedTextColor != config.textColor) {
-            binding.calculatorHolder?.let { updateViewColors(it, getProperTextColor()) }
-        }
+        applyCalcovaDesign()
 
         if (config.preventPhoneFromSleeping) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -113,71 +109,88 @@ class MainActivity : SimpleActivity(), Calculator {
 
         setupDecimalButton()
         vibrateOnButtonPress = config.vibrateOnButtonPress
-
-        binding.apply {
-            arrayOf(
-                btnPercent, btnPower, btnRoot, btnClear, btnReset, btnDivide, btnMultiply, btnPlus,
-                btnMinus, btnEquals, btnDecimal
-            ).forEach {
-                it?.background = ResourcesCompat.getDrawable(
-                    resources, org.fossify.commons.R.drawable.pill_background, theme
-                )
-                it?.background?.alpha = MEDIUM_ALPHA_INT
-            }
-
-            arrayOf(btn0, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9).forEach {
-                it?.background = ResourcesCompat.getDrawable(
-                    resources, org.fossify.commons.R.drawable.pill_background, theme
-                )
-                it?.background?.alpha = LOWER_ALPHA_INT
-            }
-        }
+        bannerAdView?.resume()
     }
 
     override fun onPause() {
+        bannerAdView?.pause()
         super.onPause()
-        storeStateVariables()
         if (config.preventPhoneFromSleeping) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 
     override fun onDestroy() {
+        bannerAdView?.destroy()
+        bannerAdView = null
         super.onDestroy()
         if (!isChangingConfigurations) {
             CalculatorDatabase.destroyInstance()
         }
     }
 
-    override fun onSaveInstanceState(bundle: Bundle) {
-        super.onSaveInstanceState(bundle)
-        bundle.putString(CALCULATOR_STATE, calc.getCalculatorStateJson().toString())
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(CALCULATOR_STATE, calc.getCalculatorStateJson().toString())
+    }
+
+    private fun applyCalcovaDesign() {
+        CalcovaThemeManager.applyWindowStyling(this, binding.root)
+        binding.mainAppbar.setBackgroundColor(CalcovaThemeManager.bgColor(this))
+        binding.mainToolbar.title = getString(R.string.calcova_brand_title)
+        CalcovaThemeManager.styleToolbar(this, binding.mainToolbar, showNavTint = false)
+
+        val displayCardBg = ContextCompat.getDrawable(this, CalcovaThemeManager.displayCardDrawableRes(this))
+        binding.displayCard?.background = displayCardBg
+        binding.formula?.setTextColor(CalcovaThemeManager.textSecondaryColor(this))
+        binding.result?.setTextColor(CalcovaThemeManager.textPrimaryColor(this))
+
+        val digitTextColor = CalcovaThemeManager.textPrimaryColor(this)
+        val fnTextColor = CalcovaThemeManager.fnTextColor(this)
+        val opTextColor = CalcovaThemeManager.opTextColor(this)
+        val clearTextColor = CalcovaThemeManager.clearTextColor(this)
+
+        val digitBgRes = CalcovaThemeManager.digitKeyDrawableRes(this)
+        val fnBgRes = CalcovaThemeManager.fnKeyDrawableRes(this)
+        val opBgRes = CalcovaThemeManager.opKeyDrawableRes(this)
+        val clearBgRes = CalcovaThemeManager.clearKeyDrawableRes(this)
+
+        binding.apply {
+            arrayOf(btn0, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btnDecimal).forEach {
+                it?.background = ContextCompat.getDrawable(this@MainActivity, digitBgRes)
+                it?.setTextColor(digitTextColor)
+            }
+
+            arrayOf(btnPercent, btnPower, btnRoot).forEach {
+                it?.background = ContextCompat.getDrawable(this@MainActivity, fnBgRes)
+                it?.setTextColor(fnTextColor)
+            }
+
+            arrayOf(btnDivide, btnMultiply, btnMinus, btnPlus).forEach {
+                it?.background = ContextCompat.getDrawable(this@MainActivity, opBgRes)
+                it?.setTextColor(opTextColor)
+            }
+
+            arrayOf(btnClear, btnReset).forEach {
+                it?.background = ContextCompat.getDrawable(this@MainActivity, clearBgRes)
+                it?.setTextColor(clearTextColor)
+            }
+
+            btnEquals?.background = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_key_equals)
+            btnEquals?.setTextColor(CalcovaThemeManager.equalsTextColor())
+        }
     }
 
     private fun setupOptionsMenu() {
         binding.mainToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.history -> showHistory()
-                R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
                 R.id.unit_converter -> launchUnitConverter()
                 R.id.settings -> launchSettings()
                 R.id.about -> launchAbout()
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
-        }
-    }
-
-    private fun refreshMenuItems() {
-        binding.mainToolbar.menu.apply {
-            findItem(R.id.more_apps_from_us).isVisible =
-                resources.getBoolean(org.fossify.commons.R.bool.is_google_play_build)
-        }
-    }
-
-    private fun storeStateVariables() {
-        config.apply {
-            storedTextColor = textColor
         }
     }
 
@@ -188,66 +201,32 @@ class MainActivity : SimpleActivity(), Calculator {
     }
 
     private fun showHistory() {
-        HistoryHelper(this).getHistory {
-            if (it.isEmpty()) {
+        HistoryHelper(this).getHistory { history ->
+            if (history.isEmpty()) {
                 toast(R.string.history_empty)
             } else {
-                HistoryDialog(this, it, calc)
+                AdManager.maybeShowInterstitial(this) {
+                    HistoryDialog(this, history, calc)
+                }
             }
         }
     }
 
     private fun launchUnitConverter() {
         hideKeyboard()
-        startActivity(Intent(applicationContext, UnitConverterPickerActivity::class.java))
+        AdManager.maybeShowInterstitial(this) {
+            startActivity(Intent(applicationContext, UnitConverterPickerActivity::class.java))
+        }
     }
 
     private fun launchSettings() {
         hideKeyboard()
-        startActivity(
-            Intent(applicationContext, SettingsActivity::class.java).apply {
-                putIntegerArrayListExtra(APP_ICON_IDS, getAppIconIDs())
-            }
-        )
+        startActivity(Intent(applicationContext, SettingsActivity::class.java))
     }
 
     private fun launchAbout() {
-        val licenses = LICENSE_AUTOFITTEXTVIEW or LICENSE_EVALEX
-
-        val faqItems = arrayListOf(
-            FAQItem(R.string.faq_1_title, R.string.faq_1_text),
-            FAQItem(
-                title = org.fossify.commons.R.string.faq_1_title_commons,
-                text = org.fossify.commons.R.string.faq_1_text_commons
-            ),
-            FAQItem(
-                title = org.fossify.commons.R.string.faq_4_title_commons,
-                text = org.fossify.commons.R.string.faq_4_text_commons
-            )
-        )
-
-        if (resources.getBoolean(org.fossify.commons.R.bool.is_google_play_build)) {
-            faqItems.add(
-                FAQItem(
-                    title = org.fossify.commons.R.string.faq_2_title_commons,
-                    text = org.fossify.commons.R.string.faq_2_text_commons
-                )
-            )
-            faqItems.add(
-                FAQItem(
-                    title = org.fossify.commons.R.string.faq_6_title_commons,
-                    text = org.fossify.commons.R.string.faq_6_text_commons
-                )
-            )
-        }
-
-        startAboutActivity(
-            appNameId = R.string.app_name,
-            licenseMask = licenses,
-            versionName = BuildConfig.VERSION_NAME,
-            faqItems = faqItems,
-            showFAQBeforeMail = true
-        )
+        hideKeyboard()
+        startActivity(Intent(applicationContext, AboutActivity::class.java))
     }
 
     private fun getButtonIds() = binding.run {

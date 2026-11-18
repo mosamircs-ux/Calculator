@@ -25,7 +25,7 @@ fun hasSigningVars(): Boolean {
 
 base {
     val versionCode = project.property("VERSION_CODE").toString().toInt()
-    archivesName = "calculator-$versionCode"
+    archivesName = "calcova-$versionCode"
 }
 
 android {
@@ -44,14 +44,14 @@ android {
 
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
-            register("release") {
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
-                storePassword = keystoreProperties.getProperty("storePassword")
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")?.trim()
+                keyPassword = keystoreProperties.getProperty("keyPassword")?.trim()
+                storeFile = file(keystoreProperties.getProperty("storeFile").trim())
+                storePassword = keystoreProperties.getProperty("storePassword")?.trim()
             }
         } else if (hasSigningVars()) {
-            register("release") {
+            create("release") {
                 keyAlias = providers.environmentVariable("SIGNING_KEY_ALIAS").get()
                 keyPassword = providers.environmentVariable("SIGNING_KEY_PASSWORD").get()
                 storeFile = file(providers.environmentVariable("SIGNING_STORE_FILE").get())
@@ -65,6 +65,9 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
         }
         release {
             isMinifyEnabled = true
@@ -73,6 +76,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Production AdMob IDs for Calcova Calculator
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-4969792934066333~8632556992"
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-4969792934066333/9287163115\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"ca-app-pub-4969792934066333/4799902009\"")
             if (keystorePropertiesFile.exists() || hasSigningVars()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -139,7 +146,7 @@ android {
         }
     }
 
-    namespace = project.property("APP_ID").toString()
+    namespace = "org.fossify.math"
 }
 
 detekt {
@@ -159,6 +166,9 @@ dependencies {
 
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)
+
+    implementation(libs.play.services.ads)
+    implementation(libs.user.messaging.platform)
 
     detektPlugins(libs.compose.detekt)
 }

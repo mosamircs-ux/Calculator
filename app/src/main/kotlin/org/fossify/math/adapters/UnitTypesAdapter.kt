@@ -42,17 +42,23 @@ class UnitTypesAdapter(
 
                 val rippleBg = ResourcesCompat.getDrawable(
                     resources, R.drawable.unit_type_background, context.theme
-                ) as RippleDrawable
+                )?.constantState?.newDrawable()?.mutate() as RippleDrawable
                 val layerDrawable =
                     rippleBg.findDrawableByLayerId(R.id.background_holder) as LayerDrawable
                 layerDrawable.findDrawableByLayerId(R.id.background_stroke)
                     .applyColorFilter(context.getStrokeColor())
                 layerDrawable.findDrawableByLayerId(R.id.background_shape)
-                    .applyColorFilter(context.getProperBackgroundColor().darkenColor(2))
+                    .applyColorFilter(org.fossify.math.helpers.CalcovaThemeManager.surfaceColor(context))
                 binding.unitBackground.background = rippleBg
 
-                binding.unitLabel.setTextColor(activity.getProperTextColor())
-                binding.unitImage.applyColorFilter(activity.getProperPrimaryColor())
+                binding.unitLabel.setTextColor(org.fossify.math.helpers.CalcovaThemeManager.textPrimaryColor(context))
+                binding.unitImage.applyColorFilter(
+                    if (org.fossify.math.helpers.CalcovaThemeManager.isDarkMode(context)) {
+                        org.fossify.math.helpers.CalcovaThemeManager.accentCyan(context)
+                    } else {
+                        org.fossify.math.helpers.CalcovaThemeManager.accentIndigo(context)
+                    }
+                )
 
                 setOnClickListener {
                     itemClick(id)

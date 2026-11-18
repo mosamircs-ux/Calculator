@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_launcher_name">Calculator</string>
+    <string name="app_launcher_name">Calcova</string>
+    <string name="calcova_brand_title">Calcova</string>
+    <string name="theme_mode">App Theme</string>
+    <string name="theme_midnight_dark">Midnight Indigo (Dark)</string>
+    <string name="theme_daylight_light">Daylight Minimal (Light)</string>
+    <string name="theme_system">Follow System</string>
+    <string name="privacy_ad_settings">Privacy &amp; Ad Settings</string>
+    <string name="privacy_ad_settings_summary">Manage ad consent preferences</string>
+    <string name="about_calcova">About Calcova</string>
+    <string name="calcova_tagline">Modern Calculator &amp; Unit Converter</string>
+    <string name="calcova_developer">Developed by Mohamed Samir Amin</string>
+    <string name="calcova_license_title">Open-Source Licenses</string>
+    <string name="calcova_license_body">Built with Kotlin, Jetpack Compose, EvalEx, AutoFitTextView, and open-source components licensed under GNU GPLv3.</string>
     <string name="scientific_calculator">Scientific Calculator</string>
     <string name="unit_converter">Unit converter</string>
     <string name="swap_units">Swap units</string>

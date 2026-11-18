@@ -1,4 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand & Icon -->
+    <color name="calcova_icon_bg">#0B1026</color>
+    <color name="calcova_accent_indigo">#5B6CFF</color>
+    <color name="calcova_accent_cyan">#22D3EE</color>
+    <color name="calcova_accent_indigo_deep">#4355E8</color>
 
+    <!-- Midnight Indigo Dark Palette -->
+    <color name="calcova_bg_dark">#090D1F</color>
+    <color name="calcova_surface_dark">#111834</color>
+    <color name="calcova_surface_border_dark">#232F5C</color>
+    <color name="calcova_text_primary_dark">#F4F7FF</color>
+    <color name="calcova_text_secondary_dark">#94A3D4</color>
+    <color name="calcova_key_digit_bg_dark">#161E3D</color>
+    <color name="calcova_key_digit_border_dark">#24305E</color>
+    <color name="calcova_key_fn_bg_dark">#1E2852</color>
+    <color name="calcova_key_fn_text_dark">#A5B4FC</color>
+    <color name="calcova_key_op_bg_dark">#243166</color>
+    <color name="calcova_key_op_text_dark">#67E8F9</color>
+    <color name="calcova_key_clear_bg_dark">#2E1B3B</color>
+    <color name="calcova_key_clear_border_dark">#4C2658</color>
+    <color name="calcova_key_clear_text_dark">#FB7185</color>
+    <color name="calcova_ripple_dark">#3367E8F9</color>
+
+    <!-- Daylight Minimal Light Palette -->
+    <color name="calcova_bg_light">#F3F5FC</color>
+    <color name="calcova_surface_light">#FFFFFF</color>
+    <color name="calcova_surface_border_light">#DCE2F5</color>
+    <color name="calcova_text_primary_light">#101633</color>
+    <color name="calcova_text_secondary_light">#5A6691</color>
+    <color name="calcova_key_digit_bg_light">#FFFFFF</color>
+    <color name="calcova_key_digit_border_light">#E2E7F7</color>
+    <color name="calcova_key_fn_bg_light">#E7ECFC</color>
+    <color name="calcova_key_fn_text_light">#4355E8</color>
+    <color name="calcova_key_op_bg_light">#DCE6FF</color>
+    <color name="calcova_key_op_text_light">#2B44D6</color>
+    <color name="calcova_key_clear_bg_light">#FDE8EE</color>
+    <color name="calcova_key_clear_border_light">#F8CBD7</color>
+    <color name="calcova_key_clear_text_light">#E11D48</color>
+    <color name="calcova_ripple_light">#225B6CFF</color>
+
+    <!-- Override Fossify default primary color so splash/widgets match Calcova -->
+    <color name="color_primary">#5B6CFF</color>
 </resources>
